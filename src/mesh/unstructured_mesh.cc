@@ -328,6 +328,7 @@ void UnstructuredMesh::_find_neighbors_by_ukey()
     // data structures -- Use the unordered_map if available
     typedef ElemKey                         key_type;
     typedef std::pair<Elem*, unsigned char> val_type;
+    // unsigned char is integer representing the index of the side in the element
 
 #if defined(HAVE_UNORDERED_MAP)
     typedef std::unordered_map<key_type, val_type, ElemKey::Hash, ElemKey::Equal> map_type;
@@ -338,16 +339,20 @@ void UnstructuredMesh::_find_neighbors_by_ukey()
 #endif
 
     // A map from side keys to corresponding elements & side numbers
+    // map<edge, elem>
     map_type side_to_elem_map;
 
+    // traverse every elem
     for (element_iterator el = this->elements_begin(); el != el_end; ++el)
     {
       Elem* element = *el;
       if(!element) continue;
 
+      // traverse every side of elem (i.e. edge in 2D)
       for (unsigned int ms=0; ms<element->n_neighbors(); ms++)
       {
         if (element->neighbor(ms) == NULL)
+        // the neighbor that sharing this side is not set
         {
           const AutoPtr<DofObject> side = element->side(ms);
           const Elem* side_elem = dynamic_cast<const Elem*>(side.get());
@@ -356,9 +361,11 @@ void UnstructuredMesh::_find_neighbors_by_ukey()
           const ElemKey key(side_elem);
 
           // Look for elements that have an identical side key
+          // It can be recorded or not.
           map_type::iterator another_side_it = side_to_elem_map.find(key);
 
           if( another_side_it !=  side_to_elem_map.end())
+          // If this side has been recorded
           {
             // Get the potential element
             Elem* neighbor = another_side_it->second.first;
@@ -376,6 +383,8 @@ void UnstructuredMesh::_find_neighbors_by_ukey()
             {
               // an element is only subactive if it has
               // been coarsened but not deleted
+
+              // *** set neighbor for both sides
               element->set_neighbor (ms,neighbor);
               neighbor->set_neighbor(ns,element);
             }
@@ -387,6 +396,8 @@ void UnstructuredMesh::_find_neighbors_by_ukey()
             {
               neighbor->set_neighbor(ns,element);
             }
+            
+            // do not forget to erase the recorded side, cause it has already been matched
             side_to_elem_map.erase (another_side_it);
 
           }
