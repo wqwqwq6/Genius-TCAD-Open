@@ -31,6 +31,7 @@
 // Tri3 class static member initializations
 const unsigned int Tri3::side_nodes_map[3][2] =
 {
+  // to guarantee that node (2+i)%3 is opposite to the side i 
   {0, 1}, // Side 0
   {1, 2}, // Side 1
   {2, 0}  // Side 2

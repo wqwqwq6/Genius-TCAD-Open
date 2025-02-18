@@ -638,6 +638,10 @@ void BoundaryInfo::build_side_list (std::vector<unsigned int>&       el,
 void BoundaryInfo::build_active_side_list (std::vector<unsigned int>&       el,
     std::vector<unsigned short int>& sl,
     std::vector<short int>&          il) const
+    // Build a list of all elements that are on the boundary
+    // el: id of elements on the boundary
+    // sl: number of side in the element which is on the boundary
+    // il: boundary id
 {
   el.clear();
   sl.clear();
@@ -647,12 +651,14 @@ void BoundaryInfo::build_active_side_list (std::vector<unsigned int>&       el,
 
   for (pos=_boundary_side_id.begin(); pos != _boundary_side_id.end(); ++pos)
   {
-    const Elem * elem = pos->first;
+    // * boundary_side_id: Data structure that maps sides of elements
+    // * to boundary ids.
+    const Elem * elem = pos->first;   // side object
     if (elem->active() )
     {
-      el.push_back (pos->first->id());
-      sl.push_back (pos->second.first);
-      il.push_back (pos->second.second);
+      el.push_back (pos->first->id());    // element id
+      sl.push_back (pos->second.first);   // side number
+      il.push_back (pos->second.second);  // boundary id
     }
     // this element has child
     else

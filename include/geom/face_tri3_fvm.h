@@ -211,7 +211,7 @@ private:
 
   /**
    * partial volume of each region seperated by segment made up of
-   * circumcircle center and edge center
+   * \p circumcircle \p center and \p edge \p center
    */
   Real v[3]; // 3- node index
 

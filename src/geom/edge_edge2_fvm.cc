@@ -29,7 +29,7 @@
 void Edge2_FVM::prepare_for_fvm()
 {
   //store this vlaue for efficiency reason
-  vol = Edge2::volume();
+  vol = Edge2::volume();    // vol is the length of the edge
 }
 
 /**

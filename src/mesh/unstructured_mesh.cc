@@ -339,10 +339,12 @@ void UnstructuredMesh::_find_neighbors_by_ukey()
 #endif
 
     // A map from side keys to corresponding elements & side numbers
-    // map<edge, elem>
+    // map<edge, <elem, edge index in this elem>>
     map_type side_to_elem_map;
 
-    // traverse every elem
+    // traverse every side of every elem.
+    // if this side is not in the side_to_elem_map, add it.
+    // if this side is in the side_to_elem_map, then we found a match.
     for (element_iterator el = this->elements_begin(); el != el_end; ++el)
     {
       Elem* element = *el;
@@ -352,7 +354,7 @@ void UnstructuredMesh::_find_neighbors_by_ukey()
       for (unsigned int ms=0; ms<element->n_neighbors(); ms++)
       {
         if (element->neighbor(ms) == NULL)
-        // the neighbor that sharing this side is not set
+        // double check, the neighbor that sharing this side is not set
         {
           const AutoPtr<DofObject> side = element->side(ms);
           const Elem* side_elem = dynamic_cast<const Elem*>(side.get());
@@ -560,7 +562,13 @@ void UnstructuredMesh::all_first_order ()
 }
 
 
-
+  /**
+   * Converts all the element in mesh to FVM element.
+   * return true if success.
+   * Before this, all elems in _elements are FEM elem.
+   * After this, all elems in _elements are FVM elem. 
+   * Original FEM elems are replaced by FVM elems.
+   */
 bool UnstructuredMesh::convert_to_fvm_mesh (std::string &error)
 {
   genius_assert(this->_is_prepared);
@@ -620,12 +628,14 @@ bool UnstructuredMesh::convert_to_fvm_mesh (std::string &error)
 
     /*
      * The FVM element and first order FEM elem has the same node
+     * copy node info from FEM element to FVM element
      */
     for (unsigned int v=0; v < fem_elem->n_vertices(); v++)
       fvm_elem->set_node(v) = fem_elem->get_node(v);
 
     /*
      * build cell's geometry information for FVM usage
+     * void Tri3_FVM::prepare_for_fvm() in face_tri3_fvm.cc
      */
     fvm_elem->prepare_for_fvm();
 

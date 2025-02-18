@@ -493,7 +493,7 @@ void SimulationSystem::build_region_fvm_mesh()
     // this function will renumber the the node/elem
     mesh.all_first_order();
 
-    // let all the elements find their neighbors
+    // *** let all the elements find their neighbors
     mesh.find_neighbors();
 
 #if 0
@@ -511,6 +511,8 @@ void SimulationSystem::build_region_fvm_mesh()
     MESSAGE<<"  Partition mesh...";  RECORD();
 
     // prepare for partition
+    // Subdomains which are neighbors and have the same material 
+    // will be clustered together for parallelization.
     if(_block_partition)
       mesh.subdomain_cluster(this->build_subdomain_cluster());
 
@@ -562,7 +564,8 @@ void SimulationSystem::build_region_fvm_mesh()
     STOP_LOG("build_region_fvm_mesh(2)", "SimulationSystem");
   }
 
-
+  // subdomains info is stored in _mesh
+  // _simulation_regions info will be created from subdomains info
   _simulation_regions.resize( _mesh.n_subdomains() );
   std::map<unsigned int,  SimulationRegion *> subdomain_id_to_region_map;
 
@@ -667,7 +670,8 @@ void SimulationSystem::build_region_fvm_mesh()
       genius_assert( node->on_local() );
 
       // create a fvm node from cell's node
-      FVM_Node *fvm_node = new FVM_Node( node );
+      // this FVM_Node has probably been created before
+      FVM_Node *fvm_node = new FVM_Node( node ); 
       genius_assert(fvm_node);
 
       // set the subdomain_id of fvm node the same as the element
@@ -684,7 +688,7 @@ void SimulationSystem::build_region_fvm_mesh()
       elem_fvm_nodes[n] = fvm_node;
       // if this node already has a FVM_Node
       std::pair<Iter, Iter> pos = _node_to_fvm_node_map.equal_range(node);
-      while (pos.first != pos.second)
+      while (pos.first != pos.second)   // already has a FVM_Node
       {
         FVM_Node *  fvm_current = (*pos.first).second;
         if ( fvm_current->subdomain_id () == fvm_node->subdomain_id () )
@@ -700,6 +704,7 @@ void SimulationSystem::build_region_fvm_mesh()
     for (unsigned int e=0; e<elem->n_edges(); e++)
     {
       //elem edges
+      // pair<edge index, node index on this edge>
       std::pair<unsigned int, unsigned int> edge_nodes;
       elem->nodes_on_edge(e, edge_nodes);
 
@@ -723,6 +728,8 @@ void SimulationSystem::build_region_fvm_mesh()
       FVM_Node * fvm_node_g = global_elem_fvm_nodes[n];
 
       if(fvm_node_g)
+      // if this node has already had a FVM_Node (cuz this node also included in other element)
+      // then we add FVM_Node info from this elem to exsited FVM_Node
       {
         *fvm_node_g +=  *fvm_node;
         delete fvm_node;
@@ -738,7 +745,7 @@ void SimulationSystem::build_region_fvm_mesh()
 
   }
 
-
+  // all FVM_Nodes have been created
 
 
 
@@ -751,13 +758,14 @@ void SimulationSystem::build_region_fvm_mesh()
       // skip nonlocal fvm_node
       if( !it_fvm->second->on_local() ) continue;
 
-      // the FVM Nodes with same root node. they will be ghost nodes in different region
+      // the FVM Nodes with same root node. they will be ghost nodes if they are in different regions
       std::pair<Iter, Iter> pos = _node_to_fvm_node_map.equal_range( it_fvm->first );
 
       // insert them into ghost node map. The interface area is set to 0.0 here, will be changed later.
-      while (pos.first != pos.second)
+      while (pos.first != pos.second)   // must be found
       {
-        if ( pos.first != it_fvm )
+        if ( pos.first != it_fvm )    // not itself, which means pos.first is a ghost node
+        // right now the interface area (the third parameter) is set to 0.0, will be changed later
          it_fvm->second->set_ghost_node( (*pos.first).second, (*pos.first).second->subdomain_id (), 0.0 );
 
         ++pos.first;
@@ -774,9 +782,9 @@ void SimulationSystem::build_region_fvm_mesh()
   MESSAGE<<"  Building boundary cells...";  RECORD();
   // we scan boundary face to find the area of interface side
   // NOTE here we should use side list of active elements!
-  std::vector<unsigned int>       elems;
-  std::vector<unsigned short int> sides;
-  std::vector<short int>          bds;
+  std::vector<unsigned int>       elems;    // id of elements on the boundary
+  std::vector<unsigned short int> sides;    // number of side in the element which is on the boundary
+  std::vector<short int>          bds;      // boundary id
   _mesh.boundary_info->build_active_side_list (elems, sides, bds);
 
   {
@@ -806,12 +814,13 @@ void SimulationSystem::build_region_fvm_mesh()
       AutoPtr<Elem> side (elem->build_side(sides[nbd]));
 
       // build corresponding FVM elem of the side
+      // in 2D, fvm_side is Edge2 Type.
       AutoPtr<Elem> fvm_side = Elem::build (Elem::fvm_compatible_type(side->type()), side->parent());
 
       for (unsigned int v=0; v < side->n_vertices(); v++)
         fvm_side->set_node(v) = side->get_node(v);
 
-      fvm_side->prepare_for_fvm();
+      fvm_side->prepare_for_fvm();  // in 2D, call Edge2_FVM::prepare_for_fvm() to calculate the length of this side
 
       for (unsigned int v=0; v < fvm_side->n_vertices(); v++)
       {
@@ -819,6 +828,7 @@ void SimulationSystem::build_region_fvm_mesh()
         if( !node->on_local() ) continue;
 
         // if we can find this node exists in bd_area_map
+        // cuz the node may be shared with other element
         if ( bd_area_map.find(node) != bd_area_map.end() )
         {
 
@@ -829,14 +839,16 @@ void SimulationSystem::build_region_fvm_mesh()
           {
             if ( (*pos.first).second.first == elem->subdomain_id() )
             {
-              (*pos.first).second.second +=  fvm_side->partial_volume_truncated(v);
+              (*pos.first).second.second +=  fvm_side->partial_volume_truncated(v);   // ** add volume
               break;
             }
             ++pos.first;
           }
           // not find? insert a new Node
-          if (pos.first == pos.second)
-            bd_area_map.insert(pos.first, std::make_pair(node, std::make_pair(elem->subdomain_id(), fvm_side->partial_volume_truncated(v))));
+
+          // I think the following two lines are redundant.
+          // if (pos.first == pos.second)
+          //   bd_area_map.insert(pos.first, std::make_pair(node, std::make_pair(elem->subdomain_id(), fvm_side->partial_volume_truncated(v))));
 
         }
         else // not find? insert a new Node
@@ -863,6 +875,9 @@ void SimulationSystem::build_region_fvm_mesh()
       while (pos.first != pos.second)
       {
         // set ghost node with the same subdomain id as boundary node
+        // (*pos.first).second: FVM_Node on the boundary
+        // (*it_bd).second.first: subdomain id of boundary node
+        // (*it_bd).second.second: boundary area of boundary node
         (*pos.first).second->set_ghost_node_area( (*it_bd).second.first, (*it_bd).second.second );
 
         ++pos.first;

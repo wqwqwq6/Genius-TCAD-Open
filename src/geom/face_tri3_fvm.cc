@@ -109,7 +109,7 @@ void Tri3_FVM::prepare_for_fvm()
   v[0] = v[1] = v[2] = 0;
   vt[0] = vt[1] = vt[2] = 0;
 
-  // the circle centre of ABC
+  // the circumcircle centre of ABC
   Point circumcircle_center;
   {
     Point v12 = this->point(0) - this->point(1);
@@ -132,13 +132,14 @@ void Tri3_FVM::prepare_for_fvm()
   {
     Point p1 =  this->point(side_nodes_map[i][0]) ;
     Point p2 =  this->point(side_nodes_map[i][1]) ;
-    Point p3 =  this->point((2+i)%3) ;
+    Point p3 =  this->point((2+i)%3) ;    // the node opposite to the side (edge)
     // the side (edge) center
     side_centers[i] = 0.5*(p1+p2);
     // the side (edge) length
     l[i] = (p1-p2).size();
-    // the distance from circumcircle center to edge
+    // the distance from circumcircle center to edge d[]
     if( (p1-p3).cos_angle(p2-p3) < 0 )
+    // if the angle is obtuse
     {
       d[i] = -(side_centers[i] - circumcircle_center).size();
       obtuse_edge = i; //we need special process to obtuse angle
@@ -395,6 +396,9 @@ VectorValue<AutoDScalar> Tri3_FVM::gradient( const std::vector<AutoDScalar> & va
 
 void Tri3_FVM::prepare_for_vector_reconstruct()
 {
+  // TODO: read this function.
+  // maybe it can accellerate the computation.
+  
    //FIXME NOT work for 3D triangle
    TNT::Array2D<Real> A (n_edges(), 2, 0.0);
    TNT::Array2D<Real> AT(2, n_edges(), 0.0);

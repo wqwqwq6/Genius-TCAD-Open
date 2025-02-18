@@ -112,7 +112,7 @@ void FVM_Node::set_ghost_node_area(unsigned int sub_id, Real area)
 {
   // the sub_id of boundary face equal to this FVM_Node and _ghost_nodes are empty
   // this is a boundary face, not interface face
-  if( sub_id == _subdomain_id && _ghost_nodes==NULL )
+  if( sub_id == _subdomain_id && _ghost_nodes==NULL )   // boundary
   {
     _ghost_nodes = new std::map< FVM_Node *, std::pair<unsigned int, Real> >;
     std::pair<unsigned int, Real> gf(invalid_uint, area);
