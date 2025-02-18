@@ -1364,11 +1364,17 @@ std::vector< std::vector<unsigned int > > SimulationSystem::build_subdomain_clus
   std::map<unsigned int, std::vector<unsigned int> > material_subdomain_cluster;
 
   std::map<Material::MaterialType, std::set<unsigned int> >::const_iterator material_subdomains_it = material_subdomains.begin();
+  
+  // Cluster the subdomains with the same material type. 
+  // Find the set of all neighboring subdomains with the same material type.
+  // BFS (Breadth First Search) method is used
   for(; material_subdomains_it != material_subdomains.end(); ++material_subdomains_it)
   {
     const std::set<unsigned int> & subdomains = material_subdomains_it->second;
     for(std::set<unsigned int>::const_iterator it=subdomains.begin(); it!=subdomains.end(); ++it)
     {
+      // for each subdomain of this material type
+      // region_me: subdomain which is being processed
       unsigned int region_me = *it;
       // find regions with the same material type and connected to me
       std::queue<unsigned int> Q;
@@ -1381,12 +1387,19 @@ std::vector< std::vector<unsigned int > > SimulationSystem::build_subdomain_clus
         Q.pop();
 
         visit_flag.insert(region);
+        // record region_me itself
+        // region == region_me right now
         material_subdomain_cluster[region_me].push_back(region);
 
+        // find all the neighboring subdomains with the same material type
         const std::vector<unsigned int> & region_neighbors = subdomain_adjncy[region];
         for(unsigned int n=0; n<region_neighbors.size(); ++n)
         {
           unsigned int region_neighbor = region_neighbors[n];
+
+          // if the neighbor has not been visited before and is of the same material type, add it to the queue
+          // visit_flag.find(region_neighbor) == visit_flag.end() is true if region_neighbor has not been visited
+          // subdomains.find(region_neighbor) != subdomains.end() is true if region_neighbor is of the same material type
           if( visit_flag.find(region_neighbor) == visit_flag.end() && subdomains.find(region_neighbor) != subdomains.end())
             Q.push(region_neighbor);
         }

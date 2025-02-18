@@ -1372,8 +1372,14 @@ void SerialMesh::_unpack_bc_nodes (const std::vector<unsigned int> &node_id,
   }
 }
 
+  /**
+   * the subdomain interconnect graph in CSR format
+   */
 void SerialMesh::subdomain_graph(std::vector<std::vector<unsigned int> >& adjncy) const
 {
+  // get subdomain adjacency info from element adjacency info
+  // if element i and j are neighbors but have different subdomain ids m and n,
+  // then m and n are adjacent subdomains.
   std::vector< std::set<unsigned int > > subdomain_neighbors(this->n_subdomains());
 
   for (unsigned int n=0; n<_elements.size(); ++n)
