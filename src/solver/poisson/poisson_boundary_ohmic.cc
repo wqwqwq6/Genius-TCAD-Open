@@ -45,6 +45,8 @@ void OhmicContactBC::Poissin_Fill_Value(Vec , Vec L)
     // skip node not belongs to this processor
     if( (*node_it)->processor_id()!=Genius::processor_id() ) continue;
 
+    // typedef std::multimap<SimulationRegionType, std::pair<SimulationRegion *, FVM_Node *> >::iterator region_node_iterator;
+    // search all the regions that has *node_it
     BoundaryCondition::region_node_iterator  rnode_it     = region_node_begin ( *node_it );
     BoundaryCondition::region_node_iterator  end_rnode_it = region_node_end ( *node_it );
     for ( ; rnode_it!=end_rnode_it; ++rnode_it )

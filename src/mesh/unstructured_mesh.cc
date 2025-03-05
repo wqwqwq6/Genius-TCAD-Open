@@ -324,6 +324,8 @@ void UnstructuredMesh::_find_neighbors_by_ukey()
   // Find neighboring elements by first finding elements
   // with identical side keys and then check to see if they
   // are neighbors
+  // if they are in the same subdomain, they are neighbors
+  // if not, they are not neighbors
   {
     // data structures -- Use the unordered_map if available
     typedef ElemKey                         key_type;
@@ -354,7 +356,8 @@ void UnstructuredMesh::_find_neighbors_by_ukey()
       for (unsigned int ms=0; ms<element->n_neighbors(); ms++)
       {
         if (element->neighbor(ms) == NULL)
-        // double check, the neighbor that sharing this side is not set
+        // the neighbor that sharing this side is not set
+        // maybe it has been set in the process of finding neighbors of other elements
         {
           const AutoPtr<DofObject> side = element->side(ms);
           const Elem* side_elem = dynamic_cast<const Elem*>(side.get());

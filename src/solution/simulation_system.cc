@@ -575,6 +575,8 @@ void SimulationSystem::build_region_fvm_mesh()
   {
     std::string label = _mesh.subdomain_label_by_id(r);
     std::string material = _mesh.subdomain_material(r);
+
+    // set material type
     switch( Material::material_type( material ) )
     {
       case Material::Semiconductor                :
@@ -623,7 +625,7 @@ void SimulationSystem::build_region_fvm_mesh()
     _simulation_regions[r]->set_subdomain_id(r);
     subdomain_id_to_region_map[r] = _simulation_regions[r];
 
-    //set partition weight for each region
+    //set partition weight for each region (we don't need it, right?)
     _mesh.set_subdomain_weight(r, Material::material_weight(_mesh.subdomain_material(r)));
   }
 
@@ -647,6 +649,13 @@ void SimulationSystem::build_region_fvm_mesh()
 #endif
 
   map_type _node_to_fvm_node_map;
+  // This multimap is important. 
+  // For each node not on the interface, we will store it for one time.
+  // If the node is on the interface, then we will store it for multiple times.
+  // For example, if a node is shared by two subdomains, then the node will be stored twice.
+  // After this multimap is built, we will search for every node in it.
+  // If a node is stored twice or more times, then we will know that this node is on the interface.
+  // And it will be set as a ghost node.
 
   // A convenient typedef
   typedef map_type::iterator Iter;
@@ -688,7 +697,7 @@ void SimulationSystem::build_region_fvm_mesh()
       elem_fvm_nodes[n] = fvm_node;
       // if this node already has a FVM_Node
       std::pair<Iter, Iter> pos = _node_to_fvm_node_map.equal_range(node);
-      while (pos.first != pos.second)   // already has a FVM_Node
+      while (pos.first != pos.second)   // already has FVM_Node(s)
       {
         FVM_Node *  fvm_current = (*pos.first).second;
         if ( fvm_current->subdomain_id () == fvm_node->subdomain_id () )
@@ -696,6 +705,8 @@ void SimulationSystem::build_region_fvm_mesh()
           global_elem_fvm_nodes[n] = fvm_current;
           break;
         }
+        // if they are not in the same subdomain,
+        // then we need to create a new FVM_Node
         ++pos.first;
       }
     }
@@ -766,6 +777,9 @@ void SimulationSystem::build_region_fvm_mesh()
       {
         if ( pos.first != it_fvm )    // not itself, which means pos.first is a ghost node
         // right now the interface area (the third parameter) is set to 0.0, will be changed later
+
+        // In the current FVM_Node, store some info about the ghost node.
+        // The first parameter is FVM_Node on other subdomains.
          it_fvm->second->set_ghost_node( (*pos.first).second, (*pos.first).second->subdomain_id (), 0.0 );
 
         ++pos.first;
@@ -814,7 +828,7 @@ void SimulationSystem::build_region_fvm_mesh()
       AutoPtr<Elem> side (elem->build_side(sides[nbd]));
 
       // build corresponding FVM elem of the side
-      // in 2D, fvm_side is Edge2 Type.
+      // in 2D, fvm_side is Edge2_FVM Type.
       AutoPtr<Elem> fvm_side = Elem::build (Elem::fvm_compatible_type(side->type()), side->parent());
 
       for (unsigned int v=0; v < side->n_vertices(); v++)
@@ -846,9 +860,8 @@ void SimulationSystem::build_region_fvm_mesh()
           }
           // not find? insert a new Node
 
-          // I think the following two lines are redundant.
-          // if (pos.first == pos.second)
-          //   bd_area_map.insert(pos.first, std::make_pair(node, std::make_pair(elem->subdomain_id(), fvm_side->partial_volume_truncated(v))));
+          if (pos.first == pos.second)
+            bd_area_map.insert(pos.first, std::make_pair(node, std::make_pair(elem->subdomain_id(), fvm_side->partial_volume_truncated(v))));
 
         }
         else // not find? insert a new Node

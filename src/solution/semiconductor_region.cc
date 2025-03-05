@@ -234,11 +234,12 @@ void SemiconductorSimulationRegion::init(PetscScalar T_external)
     mt->mapping(fvm_node->root_node(), node_data, 0.0);
 
     // we can get some parameter only related with temperature
-    PetscScalar ni  = mt->band->ni(T_external);
+    PetscScalar ni  = mt->band->ni(T_external);   // Si_band_default.cc ni()
     PetscScalar Nc  = mt->band->Nc(T_external);
     PetscScalar Nv  = mt->band->Nv(T_external);
 
     // get net doping concentration
+    // TODO: [WYQ] when is NetDoping set? maybe in do_process().
     PetscScalar Net_Doping = node_data->Net_doping();
 
     // compute electron and hole concentration for thermal equilibrium state

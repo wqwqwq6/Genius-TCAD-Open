@@ -111,9 +111,12 @@ namespace Material
   MaterialSemiconductor::MaterialSemiconductor(const SimulationRegion * reg)
       : MaterialBase(reg)
   {
+    // load material dll file, 
+    // and get the material object pointer related from the dll file
+
     // open material data base
     std::string _material = FormatMaterialString(material);
-    load_material(_material);
+    load_material(_material);     // load dll file
 
     PMI_Environment env = build_PMI_Environment();
 
@@ -177,13 +180,14 @@ namespace Material
     if(!wtrap ) { MESSAGE<<"Open PMIS "<< material <<" Trap function "<< "Default" <<" error!\n"; RECORD(); genius_error(); }
     active_models[Trap] = model_fun_name;
 
-    basic = wbasic(env);
-    band  = wband(env);
-    mob   = wmob(env);
-    gen   = wgen(env);
-    thermal  = wthermal(env);
-    optical  = woptical(env);
-    trap  = wtrap(env);
+    // get the pointer to the material object
+    basic = wbasic(env);        // For Si, basic is GSS_Si_BasicParameter*
+    band  = wband(env);         // For Si, band is GSS_Si_BandStructure*
+    mob   = wmob(env);          // For Si, mob is GSS_Si_Mob_Analytic*
+    gen   = wgen(env);          // For Si, gen is GSS_Si_Avalanche_Default*
+    thermal  = wthermal(env);   // For Si, thermal is GSS_Si_Thermal*
+    optical  = woptical(env);   // For Si, optical is GSS_Si_Optical*
+    trap  = wtrap(env);         // For Si, trap is GSS_Si_Trap_Default*
 
   }
 

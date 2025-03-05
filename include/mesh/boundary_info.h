@@ -134,6 +134,12 @@ public:
    * build _boundary_node_id map with a priority order of boundary id
    * from boundary side. i.e. one node lies on the interface of two sides with
    * different boundary id, the id of this node will be determined by an priority order.
+   * 
+   * e.g. A node is on the corner, so it may be on two boundaries with different boundary conditions, 
+   * for example OhmicContact and NeumannBoundary.
+   * When we process boundary conditions on it, we need to choose one for it.
+   * In this function, we can set the priority order of boundary condition 
+   * which determines the boundary condition of node of this kind.
    */
   void build_node_ids_from_priority_order(const std::map<short int, unsigned int> & order);
 

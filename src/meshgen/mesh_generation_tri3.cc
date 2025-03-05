@@ -1134,6 +1134,8 @@ int MeshGeneratorTri3::do_mesh()
     elem->set_node(2) = _mesh.node_ptr( out.trianglelist[3*i+2] );
     elem->subdomain_id() = static_cast<int>(out.triangleattributelist[i]+0.5);
 
+
+    // boundary conditions have been set to elems
     int bc_index;
 
     if( (bc_index = get_bc_id(elem, out.trianglelist[3*i+0], out.trianglelist[3*i+1])) > 0 )

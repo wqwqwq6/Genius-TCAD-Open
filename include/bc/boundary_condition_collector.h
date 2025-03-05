@@ -198,6 +198,7 @@ public:
     {
       _bc_index_to_bd_id[index] = *it;
       _bd_id_to_bc_index[*it]   = index;
+      // so bc_index should be the same as bd_id
     }
   }
 

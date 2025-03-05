@@ -869,23 +869,26 @@ void BoundaryInfo::get_subdomains_bd_on( std::map<short int,  std::pair<unsigned
 
   std::multimap<const Elem*, std::pair<unsigned short int, short int> >::const_iterator pos;
   for (pos=_boundary_side_id.begin(); pos != _boundary_side_id.end(); ++pos)
+  // for: every side on the boundary
   {
     short int boundary_id = pos->second.second;
 
-    const Elem * elem = pos->first;
+    const Elem * elem = pos->first;   // this is a element, not a side
     if(!elem->on_processor()) continue;
 
-    boundary_sub_ids[boundary_id].insert( elem->subdomain_id() );
+    boundary_sub_ids[boundary_id].insert( elem->subdomain_id() );   // add subdomain_id which this element belongs to
 
     // get the side
-    unsigned short int side = pos->second.first;
-    const Elem * neighbor_elem = elem->neighbor(side);
+    unsigned short int side = pos->second.first;        // this is the side number in this element
+    const Elem * neighbor_elem = elem->neighbor(side);  // this side may be shared with a neighbor
     if( neighbor_elem == NULL )
       boundary_sub_ids[boundary_id].insert( invalid_uint );
     else
     {
       assert(neighbor_elem->on_local());
-      boundary_sub_ids[boundary_id].insert( neighbor_elem->subdomain_id() );
+      boundary_sub_ids[boundary_id].insert( neighbor_elem->subdomain_id() );  
+      // since it is a set, so same subdomain_ids will be merged
+      // then boundary_sub_ids[boundary_id] will be the set of all subdomain_ids which this boundary belongs to
     }
   }
 

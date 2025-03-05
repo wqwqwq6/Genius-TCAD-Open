@@ -689,12 +689,15 @@ void FVM_Node::prepare_gradient()
   genius_assert(r3.size() == neighbors);
 
   if(_ghost_nodes)
+  // neighbors of ghost nodes are in other subdomains
+  // so it is not stored in this object
+  // but we need to consider them
   {
     std::map< FVM_Node *, std::pair<unsigned int, Real> >::const_iterator g_it = _ghost_nodes->begin();
     for( ; g_it != _ghost_nodes->end(); ++g_it)
     {
       const FVM_Node *ghost_node = g_it->first;
-      if(!ghost_node) continue;
+      if(!ghost_node) continue;   // boundary nodes, skip it
 
       neighbors += ghost_node->_fvm_node_neighbor.size();
 

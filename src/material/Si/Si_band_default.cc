@@ -57,6 +57,7 @@ private:
   {
     // Use parameters from Green (JAP 67, p.2945, 1990) for
     // silicon bandgap and densities of states
+    // When 
     EG0       = 1.16964*eV;
     EG300     = 1.1241*eV;
     EGALPH    = 2.73E-4*eV/K;
